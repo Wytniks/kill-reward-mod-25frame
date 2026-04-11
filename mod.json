@@ -1,0 +1,9 @@
+{
+  "name": "kill-reward-mod",
+  "displayName": "Kill Reward Mod",
+  "description": "@mod.description",
+  "subtitle": "Get resources for killing enemies",
+  "author": "25frame aka wytnik",
+  "version": "[blue]1.0",
+  "minGameVersion": "152"
+}

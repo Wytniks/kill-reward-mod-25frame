@@ -91,21 +91,26 @@ Events.run(EventType.Trigger.draw, () => {
         Draw.color(1, 1, 1, alpha);
 
         let offsetX = 0;
+        let layout = new GlyphLayout();
 
         t.drops.each(function(item, amount){
             if(amount <= 0) return;
 
             let str = "+" + amount;
 
+            // точное измерение текста
+            layout.setText(font, str);
+            let textWidth = layout.width;
+
+            // рисуем текст
             font.draw(str, t.x + offsetX, t.y);
 
-            let textWidth = str.length * 5.5;
+            // рисуем иконку
+            Draw.rect(item.uiIcon, t.x + offsetX + textWidth + 4, t.y, 8, 8);
 
-            Draw.rect(item.uiIcon, t.x + offsetX + textWidth + 2, t.y, 8, 8);
-
-            offsetX += textWidth + 6;
+            // сдвиг
+            offsetX += textWidth + 12;
         });
-
         font.getData().setScale(oldScaleX, oldScaleY);
         font.setColor(1, 1, 1, 1);
     }
@@ -307,9 +312,21 @@ Events.on(ClientLoadEvent, function(){
 
     dialog.addCloseButton();
 
+    // ===== buttons =====
+
+    // menu
     Vars.ui.menufrag.addButton("Drop Rewards", Icon.units, function() {
         dialog.show();
     });
+
+    // game
+    Vars.ui.hudGroup.fill(cons(table => {
+        table.top().left();
+
+        table.button(Icon.settings, Styles.cleari, () => {
+            dialog.show();
+        }).size(60).pad(6).padLeft(337);
+    }));
 });
 
 // ================= ЛОГИКА =================
@@ -335,11 +352,11 @@ Events.on(UnitDestroyEvent, function(event){
     var name = unit.type.name;
 
     // SERPULO
-    if (["dagger","crawler","nova","flare","horizon"].includes(name)) tier = 1;
-    else if (["mace","atrax","risso","mono","poly"].includes(name)) tier = 2;
-    else if (["fortress","spiroct","minke","megas","quasar"].includes(name)) tier = 3;
-    else if (["scepter","toxopid","bryde","oct","vela"].includes(name)) tier = 4;
-    else if (["reign","omura","corvus","navanax","cultivator"].includes(name)) tier = 5;
+    if (["dagger","crawler","mono","nova","flare","risso","retusa"].includes(name)) tier = 1;
+    else if (["mace","pulsar","atrax","poly","minke","horizon","oxynoe"].includes(name)) tier = 2;
+    else if (["fortress","quasar","spiroct","zenith","mega","bryde","cyerce"].includes(name)) tier = 3;
+    else if (["scepter","vela","arkyid","antumbra","quad","sei","aegires"].includes(name)) tier = 4;
+    else if (["reign","corvus","toxopid","eclipse","oct","omura","navanax"].includes(name)) tier = 5;
 
     // EREKIR
     else if (["elude","merui","stell"].includes(name)) tier = 6;

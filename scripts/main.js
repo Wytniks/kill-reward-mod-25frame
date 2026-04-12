@@ -1,3 +1,43 @@
+Events.on(ClientLoadEvent, e => {
+
+    Vars.netClient.addPacketHandler("drop-text", cons(packet => {
+
+        var data = JSON.parse(packet);
+
+        var map = new ObjectMap();
+
+        data.items.forEach(function(d){
+            var item = Vars.content.getByName(ContentType.item, d.name);
+            if(item){
+                map.put(item, d.amount);
+            }
+        });
+
+        var myTeam = Vars.player != null ? Vars.player.team() : null;
+        var deadTeam = Team.get(data.team);
+
+        if(myTeam != null && deadTeam === myTeam) return;
+        showDropText(data.x, data.y, map);
+    }));
+
+});
+
+const {GlyphLayout} = Packages.arc.graphics.g2d;
+
+let floatingTexts = [];
+
+function showDropText(x, y, drops){
+    if(!drops || drops.size === 0) return;
+
+    floatingTexts.push({
+        x: x,
+        y: y,
+        drops: drops,
+        time: 0
+    });
+}
+
+
 function randomRange(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min);
 }
@@ -22,6 +62,56 @@ var defaultDrops = {
     9: { beryllium:[20,30], graphite:[20,25], silicon:[15,20], thorium:[10,15], tungsten:[20,40] },
     10:{ beryllium:[40,100], graphite:[30,80], silicon:[20,60], thorium:[20,50], tungsten:[40,80], carbide:[15,20] }
 };
+
+Events.run(EventType.Trigger.draw, () => {
+
+    for(let i = floatingTexts.length - 1; i >= 0; i--){
+        let t = floatingTexts[i];
+
+        t.time += Time.delta;
+
+        t.y += 0.3 * Time.delta;
+
+        let alpha = 1 - (t.time / 150);
+
+        if(alpha <= 0){
+            floatingTexts.splice(i, 1);
+            continue;
+        }
+
+        let font = Fonts.outline;
+
+        let oldScaleX = font.getData().scaleX;
+        let oldScaleY = font.getData().scaleY;
+
+        font.getData().setScale(0.3);
+
+        font.setColor(1, 1, 1, alpha);
+
+        Draw.color(1, 1, 1, alpha);
+
+        let offsetX = 0;
+
+        t.drops.each(function(item, amount){
+            if(amount <= 0) return;
+
+            let str = "+" + amount;
+
+            font.draw(str, t.x + offsetX, t.y);
+
+            let textWidth = str.length * 5.5;
+
+            Draw.rect(item.uiIcon, t.x + offsetX + textWidth + 2, t.y, 8, 8);
+
+            offsetX += textWidth + 6;
+        });
+
+        font.getData().setScale(oldScaleX, oldScaleY);
+        font.setColor(1, 1, 1, 1);
+    }
+
+    Draw.color();
+});
 
 function getDropValue(tier, item, type){
     var key = "drop_t" + tier + "_" + item.name + "_" + type;
@@ -217,7 +307,7 @@ Events.on(ClientLoadEvent, function(){
 
     dialog.addCloseButton();
 
-    Vars.ui.menufrag.addButton("Drop", Icon.settings, function() {
+    Vars.ui.menufrag.addButton("Drop Rewards", Icon.units, function() {
         dialog.show();
     });
 });
@@ -240,6 +330,7 @@ Events.on(UnitDestroyEvent, function(event){
     if(!unit) return;
 
     var deadTeam = unit.team;
+
     var tier = -1;
     var name = unit.type.name;
 
@@ -257,11 +348,34 @@ Events.on(UnitDestroyEvent, function(event){
     else if (["quell","tecta","vanquish"].includes(name)) tier = 9;
     else if (["disrupt","collaris","conquer"].includes(name)) tier = 10;
 
-    // нет в списке - нет дропа
     if(tier === -1) return;
 
     var m = getMul("mul_t" + tier);
     if(m === 0) return;
+
+    var dropMap = new ObjectMap();
+    var sendArray = [];
+
+    Vars.content.items().each(function(item){
+
+        var min = getDropValue(tier, item, "min");
+        var max = getDropValue(tier, item, "max");
+
+        if(max <= 0) return;
+
+        var amount = Mathf.random(min, max + 1);
+        amount = Math.floor(amount) * m;
+
+        if(amount > 0){
+            dropMap.put(item, amount);
+
+            sendArray.push({
+                name: item.name,
+                amount: amount
+            });
+        }
+
+    });
 
     Vars.state.teams.active.each(function(teamData){
 
@@ -270,14 +384,24 @@ Events.on(UnitDestroyEvent, function(event){
         var core = teamData.core();
         if(!core) return;
 
-        Vars.content.items().each(function(item){
-
-            var amount = getDrop(tier, item) * m;
-            if(amount > 0){
-                core.items.add(item, amount);
-            }
-
+        dropMap.each(function(item, amount){
+            core.items.add(item, amount);
         });
 
     });
+
+    var packet = JSON.stringify({
+        x: unit.x,
+        y: unit.y,
+        team: deadTeam.id, 
+        items: sendArray
+    });
+
+    Call.clientPacketReliable("drop-text", packet);
+
+    var myTeam = Vars.player != null ? Vars.player.team() : null;
+
+    if(myTeam == null || deadTeam !== myTeam){
+        showDropText(unit.x, unit.y, dropMap);
+    }
 });

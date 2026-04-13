@@ -3,6 +3,8 @@ A highly convenient mod for generating resources when a unit is killed.
 Supports solo and co-op play; settings are configured by the host and automatically applied during gameplay. There's a convenient button in the top left corner for this in-game feature.
 <img width="447" height="140" alt="image" src="https://github.com/user-attachments/assets/4ee950b9-7d79-44ca-a1b6-7b80ac3baef1" />
 
+Allows you to set multipliers, which will help you change resource amounts quickly and more precisely. You can set crazy numbers like 999 :D
+<img width="684" height="483" alt="image" src="https://github.com/user-attachments/assets/a8f61bc5-79d8-4527-8695-fb65ac7404ba" />
 
 Supports any modded items, with full customization options.
 <img width="838" height="767" alt="image" src="https://github.com/user-attachments/assets/bef3dc78-cedb-4b10-aeb5-b6cadbec2a40" />

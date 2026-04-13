@@ -1,5 +1,7 @@
 A highly convenient mod for generating resources when a unit is killed.
 
+<img width="500" height="500" alt="icon" src="https://github.com/user-attachments/assets/dcab5784-34ef-4fcc-a53f-c043d33680fc" />
+
 Supports solo and co-op play; settings are configured by the host and automatically applied during gameplay. There's a convenient button in the top left corner for this in-game feature. 
 (The settings are also in the main menu)
 

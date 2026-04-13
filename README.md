@@ -22,5 +22,11 @@ Resource drops are visually appealing. A text message indicating the quantity an
 <img width="936" height="611" alt="image" src="https://github.com/user-attachments/assets/7bc0fc64-a2ca-4d18-b092-03b24da0b9f9" />
 
 
+You can turn off resource drops or display resource drops (leaving the bonus for kills):
+
+<img width="752" height="777" alt="image" src="https://github.com/user-attachments/assets/8a9f7e8e-77a1-479a-8339-99360759f543" />
+
 
 This mod can completely change the gameplay on PvP maps or campaign sectors.
+
+

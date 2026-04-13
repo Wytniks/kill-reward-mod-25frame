@@ -17,7 +17,9 @@ Events.on(ClientLoadEvent, e => {
         var deadTeam = Team.get(data.team);
 
         if(myTeam != null && deadTeam === myTeam) return;
-        showDropText(data.x, data.y, map);
+        if(isTextEnabled()){
+            showDropText(data.x, data.y, map);
+        }
     }));
 
 });
@@ -35,6 +37,15 @@ function showDropText(x, y, drops){
         drops: drops,
         time: 0
     });
+}
+
+
+function isDropEnabled(){
+    return Core.settings.getBool("drop_enabled", true);
+}
+
+function isTextEnabled(){
+    return Core.settings.getBool("drop_text_enabled", true);
 }
 
 
@@ -148,6 +159,29 @@ Events.on(ClientLoadEvent, function(){
     function showPage(func){
         content.clear();
         func(content);
+    }
+
+        function buildSettings(table){
+
+        function addCheck(label, key, def){
+
+            let check = new CheckBox(label);
+            check.update(() => {
+                check.setChecked(Core.settings.getBool(key, def));
+            });
+
+            check.changed(() => {
+                Core.settings.put(key, check.isChecked());
+            });
+
+            table.add(check).left().row();
+        }
+
+        table.add("=== GENERAL SETTINGS ===").color(Color.sky).row();
+
+        addCheck("Enable resource drops (host only)", "drop_enabled", true);
+
+        addCheck("Show drop text (client-side)", "drop_text_enabled", true);
     }
 
     // ===== MULTIPLIERS =====
@@ -308,6 +342,10 @@ Events.on(ClientLoadEvent, function(){
         showPage(buildEditor);
     }).size(160, 50);
 
+    tabs.button("Settings", function(){
+    showPage(buildSettings);
+    }).size(160, 50);
+
     showPage(buildMultipliers);
 
     dialog.addCloseButton();
@@ -340,6 +378,8 @@ function getDrop(tier, item){
 }
 
 Events.on(UnitDestroyEvent, function(event){
+
+    if(!isDropEnabled()) return;
 
     if(Vars.net.client()) return;
 
@@ -419,6 +459,8 @@ Events.on(UnitDestroyEvent, function(event){
     var myTeam = Vars.player != null ? Vars.player.team() : null;
 
     if(myTeam == null || deadTeam !== myTeam){
+        if(isTextEnabled()){
         showDropText(unit.x, unit.y, dropMap);
+        }
     }
 });

@@ -441,9 +441,18 @@ Events.on(UnitDestroyEvent, function(event){
         var core = teamData.core();
         if(!core) return;
 
-        dropMap.each(function(item, amount){
-            core.items.add(item, amount);
-        });
+    dropMap.each(function(item, amount){
+
+        var current = core.items.get(item);
+        var capacity = core.block.itemCapacity;
+
+        var space = capacity - current;
+        if(space <= 0) return;
+
+        var toAdd = Math.min(space, amount);
+
+        core.items.add(item, toAdd);
+    });
 
     });
 

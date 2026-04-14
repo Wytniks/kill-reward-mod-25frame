@@ -35,6 +35,7 @@ The button can be moved to any convenient position. If for some reason the butto
 
 This mod can completely change the gameplay on PvP maps or campaign sectors.
 
+---
 
 Discord: 25frame.mp4
 

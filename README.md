@@ -29,6 +29,13 @@ You can turn off resource drops or display resource drops (leaving the bonus for
 <img width="422" height="137" alt="image" src="https://github.com/user-attachments/assets/aa950fbd-78c7-48a9-9a92-235c88712eb2" />
 
 
+The button can be moved to any convenient position. If for some reason the button moves off the screen, it can be reset:
+
+<img width="516" height="193" alt="image" src="https://github.com/user-attachments/assets/f40b13ef-af22-4711-8664-bcd294de6187" /> <img width="284" height="54" alt="image" src="https://github.com/user-attachments/assets/8157dab7-df02-4d9e-9bb4-32d10e824bdb" />
+
+
+
+
 This mod can completely change the gameplay on PvP maps or campaign sectors.
 
 

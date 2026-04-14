@@ -109,17 +109,13 @@ Events.run(EventType.Trigger.draw, () => {
 
             let str = "+" + amount;
 
-            // точное измерение текста
             layout.setText(font, str);
             let textWidth = layout.width;
 
-            // рисуем текст
             font.draw(str, t.x + offsetX, t.y);
 
-            // рисуем иконку
             Draw.rect(item.uiIcon, t.x + offsetX + textWidth + 4, t.y, 8, 8);
 
-            // сдвиг
             offsetX += textWidth + 12;
         });
         font.getData().setScale(oldScaleX, oldScaleY);
@@ -145,7 +141,11 @@ function getDropValue(tier, item, type){
 }
 
 // ================= UI =================
+
+
 Events.on(ClientLoadEvent, function(){
+
+    let dropButton = null;
 
     var dialog = new BaseDialog("Drop Settings");
 
@@ -182,7 +182,24 @@ Events.on(ClientLoadEvent, function(){
         addCheck("Enable resource drops (host only)", "drop_enabled", true);
 
         addCheck("Show drop text (client-side)", "drop_text_enabled", true);
+
+    table.button("Reset Button Position", () => {
+
+        let x = 345;
+        let y = Core.graphics.getHeight() - 40;
+
+        Core.settings.put("drop_btn_x", new java.lang.Integer(x));
+        Core.settings.put("drop_btn_y", new java.lang.Integer(y));
+
+        if(dropButton != null){
+            dropButton.setPosition(x, y);
+        }
+
+    }).width(250).height(50).row();
+
     }
+
+    
 
     // ===== MULTIPLIERS =====
     function buildMultipliers(table){
@@ -358,15 +375,59 @@ Events.on(ClientLoadEvent, function(){
     });
 
     // game
-    Vars.ui.hudGroup.fill(cons(table => {
-        table.top().left();
 
-        table.button(Icon.settings, Styles.cleari, () => {
-            dialog.show();
-        }).size(60).pad(6).padLeft(337);
+    function getBtnX(){
+        return Core.settings.getInt("drop_btn_x", 345);
+    }
+
+    function getBtnY(){
+        return Core.settings.getInt("drop_btn_y", Core.graphics.getHeight() - 40);
+    }
+
+    function setBtnPos(x, y){
+    Core.settings.put("drop_btn_x", new java.lang.Integer(Mathf.floor(x)));
+    Core.settings.put("drop_btn_y", new java.lang.Integer(Mathf.floor(y)));
+    }
+
+    Vars.ui.hudGroup.fill(cons(root => {
+
+        let cont = new Table();
+        cont.setFillParent(true);
+
+        let btn = new ImageButton(Icon.units, Styles.cleari);
+        dropButton = btn;
+        btn.clicked(() => dialog.show());
+
+    btn.setSize(50);
+
+        // начальная позиция
+        btn.setPosition(getBtnX(), getBtnY());
+
+        let lastX = 0;
+        let lastY = 0;
+
+        btn.addListener(new JavaAdapter(InputListener, {
+
+            touchDown: function(event, x, y, pointer, button){
+                lastX = x;
+                lastY = y;
+                return true;
+            },
+
+            touchDragged: function(event, x, y, pointer){
+                let dx = x - lastX;
+                let dy = y - lastY;
+
+                btn.moveBy(dx, dy);
+                setBtnPos(btn.x, btn.y);
+            }
+
+        }));
+
+        cont.addChild(btn);
+        root.addChild(cont);
     }));
 });
-
 // ================= ЛОГИКА =================
 function getDrop(tier, item){
     var min = getDropValue(tier, item, "min");

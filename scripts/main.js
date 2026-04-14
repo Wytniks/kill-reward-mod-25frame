@@ -186,7 +186,7 @@ Events.on(ClientLoadEvent, function(){
     table.button("Reset Button Position", () => {
 
         let x = 345;
-        let y = Core.graphics.getHeight() - 40;
+        let y = Core.graphics.getHeight() - 55;
 
         Core.settings.put("drop_btn_x", new java.lang.Integer(x));
         Core.settings.put("drop_btn_y", new java.lang.Integer(y));
@@ -381,7 +381,7 @@ Events.on(ClientLoadEvent, function(){
     }
 
     function getBtnY(){
-        return Core.settings.getInt("drop_btn_y", Core.graphics.getHeight() - 40);
+        return Core.settings.getInt("drop_btn_y", Core.graphics.getHeight() - 55);
     }
 
     function setBtnPos(x, y){

@@ -2,24 +2,39 @@ Events.on(ClientLoadEvent, e => {
 
     Vars.netClient.addPacketHandler("drop-text", cons(packet => {
 
-        var data = JSON.parse(packet);
+        let data;
+        try {
+            data = JSON.parse(packet);
+        } catch (e) {
+            Log.err("[DROP] JSON ERROR: " + e);
+            return;
+        }
 
-        var map = new ObjectMap();
+        let myTeam = Vars.player ? Vars.player.team() : null;
+        if (myTeam == null) return;
 
-        data.items.forEach(function(d){
-            var item = Vars.content.getByName(ContentType.item, d.name);
-            if(item){
-                map.put(item, d.amount);
+        let killerTeam = Team.get(data.killer);
+
+        if (killerTeam != null && killerTeam !== myTeam) {
+            return;
+        }
+
+        let map = new ObjectMap();
+
+        if (data.items) {
+            for (let i = 0; i < data.items.length; i++) {
+                let d = data.items[i];
+                let item = Vars.content.getByName(ContentType.item, d.name);
+                if (item) {
+                    map.put(item, d.amount);
+                }
             }
-        });
+        }
 
-        var myTeam = Vars.player != null ? Vars.player.team() : null;
-        var deadTeam = Team.get(data.team);
-
-        if(myTeam != null && deadTeam === myTeam) return;
-        if(isTextEnabled()){
+        if (isTextEnabled()) {
             showDropText(data.x, data.y, map);
         }
+
     }));
 
 });
@@ -140,6 +155,20 @@ function getDropValue(tier, item, type){
     return 0;
 }
 
+// BLOCK DROP SETTINGS DEFAULTS
+function isBlockDropEnabled(){
+    return Core.settings.getBool("block_drop_enabled", true);
+}
+
+function getBlockDropMin(){
+    return Core.settings.getFloat("block_drop_min", 0.4);
+}
+
+function getBlockDropMax(){
+    return Core.settings.getFloat("block_drop_max", 0.7);
+}
+
+
 // ================= UI =================
 
 
@@ -163,6 +192,11 @@ Events.on(ClientLoadEvent, function(){
 
         function buildSettings(table){
 
+        table.defaults()
+            .left()
+            .padTop(6)
+            .padBottom(6);
+
         function addCheck(label, key, def){
 
             let check = new CheckBox(label);
@@ -177,27 +211,55 @@ Events.on(ClientLoadEvent, function(){
             table.add(check).left().row();
         }
 
-        table.add("=== GENERAL SETTINGS ===").color(Color.sky).row();
+        table.add("=== GENERAL SETTINGS ===").color(Color.sky).padTop(20).padBottom(15).row();
 
         addCheck("Enable resource drops (host only)", "drop_enabled", true);
 
-        addCheck("Show drop text (client-side)", "drop_text_enabled", true);
+        addCheck("Enable block destruction drops (host only)", "block_drop_enabled", true);
 
-    table.button("Reset Button Position", () => {
+        function addFloatField(label, key, def){
+            let field = new TextField((Core.settings.getFloat(key, def) * 100) + "");
 
-        let x = 345;
-        let y = Core.graphics.getHeight() - 55;
+            field.setFilter(new TextField.TextFieldFilter({
+                acceptChar: function(f, c){
+                    return "0123456789".indexOf(c) >= 0 && String(f.getText()).length < 5;
+                }
+            }));
 
-        Core.settings.put("drop_btn_x", new java.lang.Integer(x));
-        Core.settings.put("drop_btn_y", new java.lang.Integer(y));
+            field.changed(() => {
+                let v = parseFloat(field.getText());
+                if(!isNaN(v)){
+                    Core.settings.put(key, new java.lang.Float(v / 100));
+                }
+            });
 
-        if(dropButton != null){
-            dropButton.setPosition(x, y);
+            table.add(label).left();
+            table.add(field).width(120);
+            table.add("%").left().row();
         }
 
-    }).width(250).height(50).row();
+        addFloatField("Min resources for enemy buildings", "block_drop_min", 0.4);
+        addFloatField("Max resources for enemy buildings", "block_drop_max", 0.7);
 
-    }
+        table.add("=== OTHER ===").color(Color.orange).padTop(20).padBottom(15).row();
+
+        addCheck("Show drop text (client-side)", "drop_text_enabled", true);
+
+        table.button("Reset the button position in the game", () => {
+
+            let x = 345;
+            let y = Core.graphics.getHeight() - 55;
+
+            Core.settings.put("drop_btn_x", new java.lang.Integer(x));
+            Core.settings.put("drop_btn_y", new java.lang.Integer(y));
+
+            if(dropButton != null){
+                dropButton.setPosition(x, y);
+            }
+
+        }).width(250).height(50).row();
+
+        }
 
     
 
@@ -400,7 +462,7 @@ Events.on(ClientLoadEvent, function(){
 
     btn.setSize(50);
 
-        // начальная позиция
+
         btn.setPosition(getBtnX(), getBtnY());
 
         let lastX = 0;
@@ -533,4 +595,99 @@ Events.on(UnitDestroyEvent, function(event){
         showDropText(unit.x, unit.y, dropMap);
         }
     }
+});
+
+Events.on(BuildingBulletDestroyEvent, e => {
+
+    if(!isDropEnabled()) return;
+    if(Vars.net.client()) return;
+
+    let build = e.build;
+    if(!build) return;
+
+    if(!e.bullet) return;
+    let killerTeam = e.bullet.team;
+    if(!killerTeam) return;
+
+    let block = build.block;
+    let deadTeam = build.team;
+
+    if(!block || deadTeam === null) return;
+
+    let myTeam = Vars.player != null ? Vars.player.team() : null;
+    if(myTeam != null && deadTeam === myTeam) return;
+
+    if(!isBlockDropEnabled()) return;
+
+    let min = Math.min(getBlockDropMin(), getBlockDropMax());
+    let max = Math.max(getBlockDropMin(), getBlockDropMax());
+
+    let multiplier = Mathf.random(min, max);
+
+    let dropMap = new ObjectMap();
+    let sendArray = [];
+
+    // стоимость блока
+    if(block.requirements != null){
+
+        for(let i = 0; i < block.requirements.length; i++){
+            let req = block.requirements[i];
+
+            let item = req.item;
+            let baseAmount = req.amount;
+
+            let amount = Math.floor(baseAmount * multiplier);
+
+            if(amount > 0){
+                dropMap.put(item, amount);
+
+                sendArray.push({
+                    name: item.name,
+                    amount: amount
+                });
+            }
+        }
+    }
+
+    // если ничего не выпало — выходим
+    if(dropMap.size === 0) return;
+
+    // выдача в ядра (как у юнитов)
+    let core = Vars.state.teams.get(killerTeam).core();
+    if(core != null){
+
+        dropMap.each(function(item, amount){
+
+            let current = core.items.get(item);
+            let capacity = core.block.itemCapacity;
+
+            let space = capacity - current;
+            if(space <= 0) return;
+
+            let toAdd = Math.min(space, amount);
+            core.items.add(item, toAdd);
+        });
+    }
+
+    let sendDropMap = new ObjectMap();
+
+    for(let i = 0; i < sendArray.length; i++){
+        let d = sendArray[i];
+        let item = Vars.content.getByName(ContentType.item, d.name);
+        if(item){
+            sendDropMap.put(item, d.amount);
+        }
+    }
+
+    if(isTextEnabled()){
+        showDropText(build.x, build.y, sendDropMap);
+    }
+
+        Call.clientPacketReliable("drop-text", JSON.stringify({
+            x: build.x,
+            y: build.y,
+            team: deadTeam.id,
+            killer: killerTeam.id,
+            items: sendArray
+        }));
 });
